@@ -1,1 +1,5 @@
-/venv/
+/venv/*
+/rv55template/rv55_test.py
+
+/rv55template/chromedriver
+/xeta9config/x9_fetch_test.py

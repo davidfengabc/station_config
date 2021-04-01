@@ -1,10 +1,17 @@
+# Tested w/ selenium 3.141.0
+# chromedriver 89.0.4389.23
+# Chrome Version 89.0.4389.90 (Official Build) (64-bit)
+# Ubuntu 20.04 and macOS 11.2.1
+
+# Download chromedriver:  https://chromedriver.storage.googleapis.com/index.html?path=89.0.4389.23/
+# code expects chromedriver in the same directory
+
 from selenium.webdriver import Chrome
 from selenium.webdriver.common.by import By
 from selenium.webdriver import ChromeOptions
 
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from selenium.common.exceptions import StaleElementReferenceException
-from selenium.common.exceptions import ElementNotInteractableException
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions
 
@@ -13,18 +20,19 @@ from time import sleep
 from datetime import datetime
 
 
-now = datetime.now()
+
 
 def abort(drv, code, msg):
-    print('aborting: ' + msg)
+    print(f'aborting: {code} {msg}')
     drv.quit()
-    quit(code)
+    return (code, msg)
 
 
-def rv5x_template_download(url, username, password, filename, subdir, headless):
+def rv5x_fetch_template(url, username, password, filename, dir, headless):
+    now = datetime.now()
     homedir = Path.home()
 
-    dir_path = str(homedir) + subdir
+    dir_path = dir
     dir_pathc = Path(dir_path)
     filename = f'{filename}_{now.strftime("%Y%m%d_%H%M%S")}'
 
@@ -51,14 +59,14 @@ def rv5x_template_download(url, username, password, filename, subdir, headless):
     try:
         driver.get(url)
     except Exception as e:
-        abort(driver, 30, "Error opening url")
+        return abort(driver, 30, f'Error opening {url}')
 
     # wait for status table to load
     try:
         WebDriverWait(driver, 60)\
             .until(expected_conditions.visibility_of_element_located((By.ID, 'idStatus')))
     except TimeoutException:
-        abort(driver, 15, "Timeout waiting for login page to load")
+        return abort(driver, 15, "Timeout waiting for login page to load")
 
     username_txt = driver.find_element(By.ID, "username")
     username_txt.clear()
@@ -73,28 +81,29 @@ def rv5x_template_download(url, username, password, filename, subdir, headless):
 
     ignored_exceptions = (NoSuchElementException, StaleElementReferenceException,)
 
-
     def wrong_pw(drv):
         try:
             element = drv.find_element_by_id("SM1_Status")
-            print("SM1 found")
-            return True
+            return element
         except NoSuchElementException:
-            print("SM1 not found")
             try:
                 # check visibility of user/pw incorrect message
                 element = drv.find_element_by_id("Lst")
                 if element.value_of_css_property("display") != "none":
-                    abort(driver, 10, "Did not advance past login")
+                    # abort(driver, 10, "Did not advance past login")
+                    return 10
                 return False
             except NoSuchElementException:
                 return False
 
 
     try:
-        WebDriverWait(driver, 60).until(wrong_pw)
+        element = WebDriverWait(driver, 60).until(wrong_pw)
     except TimeoutException:
-        abort(driver, 11, 'Timeout waiting to login:  slow connection or wrong user/pw')
+        return abort(driver, 11, 'Timeout waiting to login:  slow connection or wrong user/pw')
+
+    if element == 10:
+        return abort(driver, 10, "wrong user/pw")
 
     i = 0
     while True:
@@ -110,7 +119,7 @@ def rv5x_template_download(url, username, password, filename, subdir, headless):
         except:
             i = i + 1
             if i > 3:
-                abort(driver, 12, "Three tries to open template dialog")
+                return abort(driver, 12, "Three tries to open template dialog")
             print("Exception sending keys for filename, clicking template again")
 
     template_dl_btn = driver.find_element(By.NAME, "download_template")
@@ -121,7 +130,7 @@ def rv5x_template_download(url, username, password, filename, subdir, headless):
             .until(expected_conditions.\
                    visibility_of_element_located((By.CLASS_NAME, 'success')))
     except TimeoutException:
-        abort(driver, 14, "Timed out waiting for template to generate")
+        return abort(driver, 14, "Timed out waiting for template to generate")
 
     file_check_iterations = 0
     while True:
@@ -129,7 +138,7 @@ def rv5x_template_download(url, username, password, filename, subdir, headless):
             break
         else:
             if file_check_iterations >= 10:
-                abort(driver, 88, "file failed to download")
+                return abort(driver, 88, "file failed to download")
             sleep(1)
             file_check_iterations = file_check_iterations + 1
 
@@ -142,7 +151,7 @@ def rv5x_template_download(url, username, password, filename, subdir, headless):
 
     driver.quit()
 
-    return (0, 'Success!')
+    return (0, 'Success')
 
 
 if __name__ == "__main__":
