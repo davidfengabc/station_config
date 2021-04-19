@@ -60,7 +60,7 @@ def rv5x_get_config(url, username, password, filename, dir, headless):
     prefs = {"download.default_directory" : dir_path}
     options.add_experimental_option("prefs", prefs)
 
-    driver = Chrome(executable_path="./chromedriver", options=options)
+    driver = Chrome(executable_path="chromedriver", options=options)
 
     try:
         driver.get(url)
