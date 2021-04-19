@@ -5,8 +5,8 @@ import requests
 import re
 
 
-class BadPasswordError(Exception):
-    def __init__(self, message="Bad login"):
+class LoginError(Exception):
+    def __init__(self, message="Unable to login"):
         self.message = message
         super().__init__(self.message)
 
@@ -19,26 +19,21 @@ def afx_get_config(url, username, password):
     login_url = url + '/login.cgi'
     login_data = {'username': username, 'password': password}
     cfg_url = url + '/cfg.cgi'
+
     s = requests.Session()
 
-    try:
-        root_resp = s.post(url, data=login_data, verify=False)
-        root_resp.raise_for_status()
+    root_resp = s.post(url, data=login_data, verify=False)
+    root_resp.raise_for_status()
 
-        login_resp = s.post(login_url, data=login_data, verify=False)
-        login_resp.raise_for_status()
-        if re.search(r"login\.cgi$", login_resp.url) != None:
-            # bad login
-            print("bad login")
-            raise BadPasswordError
+    login_resp = s.post(login_url, data=login_data, verify=False)
+    login_resp.raise_for_status()
+    if re.search(r"login\.cgi$", login_resp.url) != None:
+        raise LoginError
 
-        resp = s.get(cfg_url, verify=False)
-        resp.raise_for_status()
-        return 0, resp.text
-    except requests.exceptions.HTTPError as e:
-        return resp.status_code, e
-    except Exception as e:
-        return 2, e
+    resp = s.get(cfg_url, verify=False)
+    resp.raise_for_status()
+    return resp.text
+
 
 
 if __name__ == "__main__":
@@ -46,7 +41,9 @@ if __name__ == "__main__":
     username = 'ubnt'
     password = 'ubnt'
 
-    code, e = afx_get_config(url, username, password)
+    try:
+        print(afx_get_config(url, username, password))
+    except Exception as e:
+        print(e)
 
-    print(f'{code} {e}')
 
