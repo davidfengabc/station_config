@@ -1,5 +1,6 @@
 /venv/*
-/rv55template/rv55_test.py
+/rv5x/rv55_fetch_config_test.py
 
-/rv55template/chromedriver
-/xeta9config/x9_fetch_test.py
+/rv5x/chromedriver
+/xeta9/x9_fetch_config_test.py
+/airfiberx/afx_fetch_config_test.py

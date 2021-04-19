@@ -6,6 +6,8 @@
 # Download chromedriver:  https://chromedriver.storage.googleapis.com/index.html?path=89.0.4389.23/
 # code expects chromedriver in the same directory
 
+# tested against RV50 - 4.14.0.014
+
 from selenium.webdriver import Chrome
 from selenium.webdriver.common.by import By
 from selenium.webdriver import ChromeOptions
@@ -20,17 +22,21 @@ from time import sleep
 from datetime import datetime
 
 
-
-
 def abort(drv, code, msg):
-    print(f'aborting: {code} {msg}')
     drv.quit()
     return (code, msg)
 
+# rv5x_get_config
+# dir - default download directory (set by Chromedriver)
+# headless - True will prevent a Chrome window from displaying
+# note:  browser will save a copy to dir  timestamp added to filename
+# return:  (a, b) tuple
+# if a == 0, b is the contents of the template file
+# if a != 0, b is an error msg
 
-def rv5x_fetch_template(url, username, password, filename, dir, headless):
+
+def rv5x_get_config(url, username, password, filename, dir, headless):
     now = datetime.now()
-    homedir = Path.home()
 
     dir_path = dir
     dir_pathc = Path(dir_path)
@@ -93,6 +99,8 @@ def rv5x_fetch_template(url, username, password, filename, dir, headless):
                     # abort(driver, 10, "Did not advance past login")
                     return 10
                 return False
+            except StaleElementReferenceException:
+                return False
             except NoSuchElementException:
                 return False
 
@@ -133,8 +141,11 @@ def rv5x_fetch_template(url, username, password, filename, dir, headless):
         return abort(driver, 14, "Timed out waiting for template to generate")
 
     file_check_iterations = 0
+    file_contents = None
     while True:
         if Path(f'{dir_path}/{filename}.xml').exists():
+            with open(f'{dir_path}/{filename}.xml', 'r') as f:
+                file_contents = f.read()
             break
         else:
             if file_check_iterations >= 10:
@@ -142,16 +153,9 @@ def rv5x_fetch_template(url, username, password, filename, dir, headless):
             sleep(1)
             file_check_iterations = file_check_iterations + 1
 
-    # clean up needed?  more possibility for errors
-    # close_template = driver.find_element(By.CLASS_NAME, "dlg_close")
-    # close_template.click()
-    #
-    # logout = driver.find_element(By.CLASS_NAME, "top_btn")
-    # logout.click()
-
     driver.quit()
 
-    return (0, 'Success')
+    return 0, file_contents
 
 
 if __name__ == "__main__":
@@ -159,7 +163,7 @@ if __name__ == "__main__":
     username = 'user'
     password = 'test'
     filename = 'TEST'
-    subdir = '/Downloads/rv55template'
+    subdir = '/Downloads/rv5x'
     headless = False
 
-    print(rv5x_template_download(url, username, password, filename, subdir, headless))
+    print(rv5x_get_config(url, username, password, filename, subdir, headless)[1])
