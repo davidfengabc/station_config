@@ -4,6 +4,7 @@ Fetch configuration files for:
 1. Sierra Wireless RV5x
 2. Xetawave9
 3. Ubiquiti Nanobeam AC Gen2
+4. Nanometrics Centaur
 
 ## Requirements
 1. python3
